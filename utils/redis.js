@@ -1,4 +1,4 @@
-import redis from "redis";
+import redis from 'redis';
 
 /**
  * Class representing a Redis client.
@@ -15,11 +15,11 @@ class RedisClient {
     this.client.connected = true;
 
     // Handle error events
-    this.client.on("error", (err) => {
-      console.error("Redis connection error:", err);
+    this.client.on('error', (err) => {
+      console.error('Redis connection error:', err);
     });
 
-    this.client.on("connect", () => {
+    this.client.on('connect', () => {
       this.client.connected = true;
     });
   }
@@ -61,7 +61,7 @@ class RedisClient {
   async set(key, value, duration) {
     return new Promise((resolve, reject) => {
       // Set the value with expiration
-      this.client.set(key, value, "EX", duration, (err) => {
+      this.client.set(key, value, 'EX', duration, (err) => {
         if (err) {
           reject(err);
         } else {
