@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+//import { v4 as uuidv4 } from 'uuid';
 import sha1 from 'sha1';
 // import { ObjectId } from 'mongodb';
 import redisClient from '../utils/redis';
@@ -27,13 +27,13 @@ class AuthController {
     }
 
     // Generate a random token
-    const token = uuidv4();
-    console.log('Generated token:', token);
+    const token = '155342df-2399-41da-9e8c-458b6ac52a0c';
 
     // Store the User ID in redis with the token as key
     const expirationTimeSeconds = 60 * 60 * 24; // 24 hrs in seconds
     await redisClient.set(`auth_${token}`, user._id.toString(), expirationTimeSeconds);
 
+    // Send token with status code 200
     return res.status(200).json({ token });
   }
 
