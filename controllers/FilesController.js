@@ -164,24 +164,26 @@ class FilesController {
 
     if (Number.isNaN(page)) page = 0;
 
-    if (parentId !== 0 && parentId !== '0') {
-      if (!basicUtils.isValidId(parentId)) { return response.status(401).send({ error: 'Unauthorized' }); }
+    if (parentId !== '0') {
+      if (!basicUtils.isValidId(parentId)) {
+        return response.status(401).send({ error: 'Unauthorized' });
+      }
 
       parentId = ObjectId(parentId);
 
       const folder = await fileUtils.getFile({
-        _id: ObjectId(parentId),
+        _id: parentId,
       });
 
-      if (!folder || folder.type !== 'folder') { return response.status(200).send([]); }
+      if (!folder || folder.type !== 'folder') {
+        return response.status(200).send([]);
+      }
     }
 
     const pipeline = [
       { $match: { parentId } },
       { $skip: page * 20 },
-      {
-        $limit: 20,
-      },
+      { $limit: 20 },
     ];
 
     const fileCursor = await fileUtils.getFilesOfParentId(pipeline);
@@ -194,12 +196,11 @@ class FilesController {
 
     const modifyResult = fileList.map((file) => ({
       ...file,
-      id: file._id.toString(),
+      id: file._id,
       _id: undefined,
     }));
 
-    // return response.status(200).send(fileList);
-    return response.status(200).send(modifyResult);
+    return response.json(modifyResult);
   }
 
   /**
