@@ -1,48 +1,31 @@
-import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
+import dbClient from '../utils/db';
 
-/**
- * Controller for handling API endpoints related to app status and statistics
- */
 class AppController {
   /**
-     * Get status of Redis and DB
-     * @param {express.Request}  req - Express request object
-     * @param {express.Response} res - Express response object
-     * @returns {void}
-     */
-  static async getStatus(req, res) {
-    try {
-      // Check if Redis and DB are alive
-      const redisAlive = redisClient.isAlive();
-      const dbAlive = dbClient.isAlive();
-
-      // Return status with 200 OK
-      res.status(200).json({ redis: redisAlive, db: dbAlive });
-    } catch (error) {
-      console.error('Error getting status:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
+   * should return if Redis is alive and if the DB is alive too
+   * by using the 2 utils created previously:
+   * { "redis": true, "db": true } with a status code 200
+   */
+  static getStatus(request, response) {
+    const status = {
+      redis: redisClient.isAlive(),
+      db: dbClient.isAlive(),
+    };
+    response.status(200).send(status);
   }
 
   /**
-   * Get statistics of users and files
-   * @param {express.Request} req - Epress req object
-   * @param {express.Response} res - Express response object
-   * @returns {void}
+   * should return the number of users and files in DB:
+   * { "users": 12, "files": 1231 }
+   *  with a status code 200
    */
-  static async getStats(req, res) {
-    try {
-      // Get num of users and files
-      const numUsers = await dbClient.nbUsers();
-      const numFiles = await dbClient.nbFiles();
-
-      // Return stats with 200 OK
-      res.status(200).json({ users: numUsers, files: numFiles });
-    } catch (error) {
-      console.error('Error getting stats:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
-    }
+  static async getStats(request, response) {
+    const stats = {
+      users: await dbClient.nbUsers(),
+      files: await dbClient.nbFiles(),
+    };
+    response.status(200).send(stats);
   }
 }
 
