@@ -1,64 +1,95 @@
-// utils/redis.js
+import redis from 'redis';
 
-const redis = require('redis');
+/**
+ * Class representing a Redis client.
+ */
 
 class RedisClient {
+  /**
+   * Create a Redis client.
+   */
+
   constructor() {
+    // Create a new Redis client
     this.client = redis.createClient();
+    this.client.connected = true;
 
+    // Handle error events
     this.client.on('error', (err) => {
-      console.error('Redis error:', err);
+      console.error('Redis connection error:', err);
     });
 
-    // Ensure that the client is connected before using it
-    if (process.env.NODE_ENV !== 'test') {
-      this.client.on('connect', () => {
-        console.log('Connected to Redis');
-      });
-    }
-  }
-
-  async isAlive() {
-    // Ping Redis to check if it's alive
-    return new Promise((resolve) => {
-      this.client.ping('PING', (err) => {
-        if (err) resolve(false);
-        else resolve(true);
-      });
+    this.client.on('connect', () => {
+      this.client.connected = true;
     });
   }
 
+  /**
+   * Check if the connection to Redis is alive.
+   * @returns {boolean} True if connection is alive, otherwise false.
+   */
+  isAlive() {
+    // Check if the client is connected
+    return this.client.connected;
+  }
+
+  /**
+   * Get the value stored in Redis for a given key
+   * @param {string} key - The key to retrive the value for
+   * @returns {Promise<any>} A promise that resolves to value stored in Redis for given key
+   */
   async get(key) {
-    // Get value from Redis for the given key
     return new Promise((resolve, reject) => {
-      this.client.get(key, (err, value) => {
-        if (err) reject(err);
-        else resolve(value);
+      // Get the value for the key
+      this.client.get(key, (err, reply) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(reply);
+        }
       });
     });
   }
 
+  /**
+   * Set a value in Redis for a given key with an expiration
+   * @param {string} key - The key to the set the value for
+   * @param {any} value - The value to store in Redis
+   * @param {number} duration -The expiration duration in secs
+   * @returns {Promise<void>} A promise that resolves when value is successfully set in Redis
+   */
   async set(key, value, duration) {
-    // Set value in Redis with expiration time
     return new Promise((resolve, reject) => {
-      this.client.setex(key, duration, value, (err) => {
-        if (err) reject(err);
-        else resolve(true);
+      // Set the value with expiration
+      this.client.set(key, value, 'EX', duration, (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
       });
     });
   }
 
+  /**
+   * Delete the value store in Redis for a given key
+   * @param {string} key - The key to delete the value for
+   * @returns {Promise<void>} promise that reolves when value is successfuly deleted 4rm Redis
+   */
   async del(key) {
-    // Delete value from Redis for the given key
     return new Promise((resolve, reject) => {
+      // Delete value for the key
       this.client.del(key, (err) => {
-        if (err) reject(err);
-        else resolve(true);
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
       });
     });
   }
 }
 
+// Create and export an instance of RedisCleint
 const redisClient = new RedisClient();
-
-module.exports = redisClient;
+export default redisClient;
