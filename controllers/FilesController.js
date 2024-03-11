@@ -158,7 +158,7 @@ class FilesController {
 
     let parentId = request.query.parentId || '0';
 
-    if (parentId === '0') parentId = 0;
+    if (parentId === '0') parentId = '0';
 
     let page = Number(request.query.page) || 0;
 
@@ -192,7 +192,14 @@ class FilesController {
       fileList.push(document);
     });
 
-    return response.status(200).send(fileList);
+    const modifyResult = fileList.map((file) => ({
+      ...file,
+      id: file._id.toString(),
+      _id: undefined,
+    }));
+
+    // return response.status(200).send(fileList);
+    return response.status(200).send(modifyResult);
   }
 
   /**
