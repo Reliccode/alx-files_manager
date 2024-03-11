@@ -72,7 +72,7 @@ class FilesController {
 
     if (validationError) { return response.status(400).send({ error: validationError }); }
 
-    if (fileParams.parentId !== 0 && !basicUtils.isValidId(fileParams.parentId)) { return response.status(400).send({ error: 'Parent not found' }); }
+    if (fileParams.parentId !== '0' && !basicUtils.isValidId(fileParams.parentId)) { return response.status(400).send({ error: 'Parent not found' }); }
 
     const { error, code, newFile } = await fileUtils.saveFile(
       userId,
@@ -92,6 +92,8 @@ class FilesController {
       });
     }
 
+    // Convert parentId to integer 0 when sending response
+    newFile.parentId = parseInt(newFile.parentId, 10);
     return response.status(201).send(newFile);
   }
 
