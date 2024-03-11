@@ -29,12 +29,12 @@ class FilesController {
 
     const { error: validationError, fileParams } = await fileUtils.validateBody(request);
 
-    if (validationError) { 
-      return response.status(400).send({ error: validationError }); 
+    if (validationError) {
+      return response.status(400).send({ error: validationError });
     }
 
-    if (fileParams.parentId !== 0 && !basicUtils.isValidId(fileParams.parentId)) { 
-      return response.status(400).send({ error: 'Parent not found' }); 
+    if (fileParams.parentId !== 0 && !basicUtils.isValidId(fileParams.parentId)) {
+      return response.status(400).send({ error: 'Parent not found' });
     }
 
     const { error, code, newFile } = await fileUtils.saveFile(
@@ -70,8 +70,8 @@ class FilesController {
 
     if (!user) return response.status(401).send({ error: 'Unauthorized' });
 
-    if (!basicUtils.isValidId(fileId) || !basicUtils.isValidId(userId)) { 
-      return response.status(404).send({ error: 'Not found' }); 
+    if (!basicUtils.isValidId(fileId) || !basicUtils.isValidId(userId)) {
+      return response.status(404).send({ error: 'Not found' });
     }
 
     const result = await fileUtils.getFile({
@@ -169,16 +169,16 @@ class FilesController {
     const { id: fileId } = request.params;
     const size = request.query.size || 0;
 
-    if (!basicUtils.isValidId(fileId)) { 
-      return response.status(404).send({ error: 'Not found' }); 
+    if (!basicUtils.isValidId(fileId)) {
+      return response.status(404).send({ error: 'Not found' });
     }
 
     const file = await fileUtils.getFile({
       _id: ObjectId(fileId),
     });
 
-    if (!file || !fileUtils.isOwnerAndPublic(file, userId)) { 
-      return response.status(404).send({ error: 'Not found' }); 
+    if (!file || !fileUtils.isOwnerAndPublic(file, userId)) {
+      return response.status(404).send({ error: 'Not found' });
     }
 
     if (file.type === 'folder') {
