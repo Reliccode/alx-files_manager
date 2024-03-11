@@ -50,12 +50,6 @@ class FilesController {
    * localPath: for a type=file|image, the absolute path to the file save in local
    * Return the new file with a status code 201
    */
-  static async getUserFromToken(request) {
-    const { userId } = await userUtils.getUserIdAndKey(request);
-    const user = await userUtils.getUser({ _id: ObjectId(userId) });
-    return user;
-  }
-
   static async postUpload(request, response) {
     const { userId } = await userUtils.getUserIdAndKey(request);
 
@@ -156,9 +150,13 @@ class FilesController {
    * Pagination can be done directly by the aggregate of MongoDB
    */
   static async getIndex(request, response) {
-    const { userId } = await FilesController.getUserFromToken(request);
+    const { userId } = await userUtils.getUserIdAndKey(request);
 
-    if (!userId) return response.status(401).send({ error: 'Unauthorized' });
+    const user = await userUtils.getUser({
+      _id: ObjectId(userId),
+    });
+
+    if (!user) return response.status(401).send({ error: 'Unauthorized' });
 
     let parentId = request.query.parentId || '0';
 
@@ -168,14 +166,16 @@ class FilesController {
 
     if (Number.isNaN(page)) page = 0;
 
-    if (!basicUtils.isValidId(parentId)) {
-      return response.status(400).send({ error: 'Invalid parentId' });
-    }
+    if (parentId !== '0' && parentId !== '0') {
+      if (!basicUtils.isValidId(parentId)) {
+        return response.status(401).send({ error: 'Unauthorized' });
+      }
 
-    parentId = ObjectId(parentId);
+      parentId = ObjectId(parentId);
 
-    if (parentId !== '0') {
-      const folder = await fileUtils.getFile({ _id: parentId });
+      const folder = await fileUtils.getFile({
+        _id: parentId,
+      });
 
       if (!folder || folder.type !== 'folder') {
         return response.status(200).send([]);
