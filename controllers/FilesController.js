@@ -166,7 +166,7 @@ class FilesController {
 
     if (Number.isNaN(page)) page = 0;
 
-    if (parentId !== '0') {
+    if (parentId !== '0' && parentId !== '0') {
       if (!basicUtils.isValidId(parentId)) {
         return response.status(401).send({ error: 'Unauthorized' });
       }
