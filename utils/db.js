@@ -1,4 +1,4 @@
-// utils/db.mjs
+// utils/db.js
 import { MongoClient } from 'mongodb';
 
 class DBClient {
