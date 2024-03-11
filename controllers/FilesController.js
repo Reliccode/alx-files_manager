@@ -1,85 +1,74 @@
 import { v4 as uuidv4 } from 'uuid';
-import fs from 'fs';
-import dbClient from '../utils/db';
+import sha1 from 'sha1';
 import redisClient from '../utils/redis';
+import userUtils from '../utils/user';
 
-class FilesController {
+class AuthController {
   /**
-     * Create new file in db and on disk
-     * @param {Request} req - Request object
-     * @param {Response} res - Response object
-     */
-  static async postUpload(req, res) {
-    const {
-      name, type, parentId = 0, isPublic = false, data,
-    } = req.body;
+   * Should sign-in the user by generating a new authentication token
+   *
+   * By using the header Authorization and the technique of the Basic auth
+   * (Base64 of the <email>:<password>), find the user associate to this email
+   * and with this password (reminder: we are storing the SHA1 of the password)
+   * If no user has been found, return an error Unauthorized with a status code 401
+   * Otherwise:
+   * Generate a random string (using uuidv4) as token
+   * Create a key: auth_<token>
+   * Use this key for storing in Redis (by using the redisClient create previously)
+   * the user ID for 24 hours
+   * Return this token: { "token": "155342df-2399-41da-9e8c-458b6ac52a0c" }
+   * with a status code 200
+   */
+  static async getConnect(request, response) {
+    const Authorization = request.header('Authorization') || '';
 
-    // Retrive user based on token
-    const token = req.headers['x-token'];
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+    const credentials = Authorization.split(' ')[1];
 
-    const userId = await redisClient.get(`auth_${token}`);
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+    if (!credentials) { return response.status(401).send({ error: 'Unauthorized' }); }
 
-    // Validate input parameters
-    if (!name) {
-      return res.status(400).json({ error: 'Missing name' });
-    }
+    const decodedCredentials = Buffer.from(credentials, 'base64').toString(
+      'utf-8',
+    );
 
-    const acceptedTypes = ['folder', 'file', 'image'];
-    if (!type || !acceptedTypes.includes(type)) {
-      return res.status(400).json({ error: 'Missing type' });
-    }
+    const [email, password] = decodedCredentials.split(':');
 
-    if (!data && type !== 'folder') {
-      return res.status(400).json({ error: 'Missing data' });
-    }
+    if (!email || !password) { return response.status(401).send({ error: 'Unauthorized' }); }
 
-    // Parent validation
-    if (parentId !== 0) {
-      const parentFile = await dbClient.db.collection('files').findOne({ _id: parentId });
-      if (!parentFile) {
-        return res.status(400).json({ error: 'Parent not found' });
-      }
-      if (parentFile.type !== 'folder') {
-        return res.status(400).json({ error: 'Parent is not a folder ' });
-      }
-    }
+    const sha1Password = sha1(password);
 
-    // Create folder if it doesnt exist
-    const filePath = process.env.FOLDER_PATH || '/tmp/files_manager';
-    if (!fs.existsSync(filePath)) {
-      fs.mkdirSync(filePath, { recursive: true });
-    }
+    const user = await userUtils.getUser({
+      email,
+      password: sha1Password,
+    });
 
-    // FIle creation
-    const fileDocument = {
-      userId,
-      name,
-      type,
-      isPublic,
-      parentId,
-    };
+    if (!user) return response.status(401).send({ error: 'Unauthorized' });
 
-    if (type !== 'folder') {
-      // Store file on disk
-      const filePath = process.env.FOLDER_PATH || '/tmp/files_manager';
-      const fileId = uuidv4();
-      const absolutePath = `${filePath}/${fileId}`;
-      fs.writeFileSync(absolutePath, Buffer.from(data, 'base64'));
+    const token = uuidv4();
+    const key = `auth_${token}`;
+    const hoursForExpiration = 24;
 
-      fileDocument.localPath = absolutePath;
-    }
+    await redisClient.set(key, user._id.toString(), hoursForExpiration * 3600);
 
-    // Insert file document into database
-    const result = await dbClient.db.collection('files').insertOne(fileDocument);
+    return response.status(200).send({ token });
+  }
 
-    return res.status(201).json({ id: result.ops[0]._id, ...fileDocument });
+  /**
+   * Should sign-out the user based on the token
+   *
+   * Retrieve the user based on the token:
+   * If not found, return an error Unauthorized with a status code 401
+   * Otherwise, delete the token in Redis and return nothing with a
+   * status code 204
+   */
+  static async getDisconnect(request, response) {
+    const { userId, key } = await userUtils.getUserIdAndKey(request);
+
+    if (!userId) return response.status(401).send({ error: 'Unauthorized' });
+
+    await redisClient.del(key);
+
+    return response.status(204).send();
   }
 }
 
-export default FilesController;
+export default AuthController;
