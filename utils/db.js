@@ -1,5 +1,5 @@
-// utils/db.js
-const { MongoClient } = require('mongodb');
+// utils/db.mjs
+import { MongoClient } from 'mongodb';
 
 class DBClient {
   constructor() {
@@ -48,4 +48,4 @@ class DBClient {
 }
 
 const dbClient = new DBClient();
-module.exports = dbClient;
+export default dbClient;
